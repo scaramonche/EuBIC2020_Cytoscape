@@ -1,0 +1,129 @@
+---
+title: "Cytoscape Omics Visualizer exercises"
+output: html_notebook
+---
+
+# Cytoscape Omics Visualizer exercises
+
+```{r}
+library(RCy3)
+```
+
+## Learning objectives
+
+In these exercises, we will use the [Omics Visualizer](http://apps.cytoscape.org/apps/omicsvisualizer) app for [Cytoscape](http://cytoscape.org/) to retrieve molecular networks from the [STRING](https://string-db.org/) database and visualize site-specific information on the nodes. The exercises will teach you how to:
+
+- load a table with omics data
+- filter the data within the table
+- retrieve a STRING network for a table
+- connect the table to a network
+- visualize site-specific data onto networks
+- visualize time-series data onto networks
+
+## Prerequisites
+
+To follow the exercises, please make sure that you have the latest version of Cytoscape installed. Then start Cytoscape and go to **Apps → App Manager** to check for new apps, install them and update the current ones if necessarily. The exercises require you to have certain Cytoscape apps installed. Make sure you have the **Omics Visualizer** app, the **stringApp**, **enhancedGraphics**, and their dependencies installed.
+
+```{r}
+availableApps <- getAvailableApps()
+# Looking for names:
+availableApps <- sub("name: ", "", availableApps) # get rid of the prefix
+availableApps <- sub(", version:.*", "", availableApps) # get rid of the version
+
+if(!"Omics Visualizer" %in% availableApps) {
+  installApp("Omics Visualizer")
+}
+if(!"stringApp" %in% availableApps) {
+  installApp("stringApp")
+}
+if(!"enhancedGraphics" %in% availableApps) {
+  installApp("enhancedGraphics")
+}
+```
+
+
+## Exercise 1
+
+In this exercise, we will load a data table with proteomics data, filter it, retrieve a STRING network for the proteins, and visualize site-specific information onto the protein network.
+
+We will work with phosphoproteomics data from an ovarian cancer study ([Francavilla et al., 2017](https://doi.org/10.1016/j.celrep.2017.03.015)). The study used mass spectrometry to compare the phosphoproteome of primary cells derived from epithelial ovarian cancer (EOC) to those of two healthy tissues, namely distal fallopian tube epithelium (FTE) and ovarian surface epithelium (OSE). Each protein can have multiple significantly regulated phosphorylation sites, each of which is associated with two log-fold change values (one for each control tissue), a Benjamini–Hochberg adjusted p-value, and a cluster assignment that groups sites with similar behavior across samples. An adapted and simplified table with the data from this study is available [here](https://jensenlab.org/assets/Francavilla2017CellRep.tsv).
+
+### 1.1 Table import
+
+Close the current session. Download the text file with the data described above and import it with Omics Visualizer.
+
+```{r}
+closeSession(save.before.closing = FALSE)
+
+filename <- paste(getwd(), "Francavilla2017CellRep.tsv", sep = '/')
+if(!file.exists(filename)) {
+  download.file("https://jensenlab.org/assets/Francavilla2017CellRep.tsv", filename)
+}
+ov_load_cmd = paste("ov load file=\"", filename, "\"", sep = '')
+ov_table_name <- commandsRun(ov_load_cmd)
+```
+
+
+### 1.2 Table row filtering
+
+Omics Visualizer allows you to filter the rows in the table before visualizing them on a network. We will create a simple filter to keep only the phosphorylation sites that are statistically significant at a 1% false discovery rate.
+
+```{r}
+ov_filter_cmd <- paste("ov filter filter=\"(Adj p-value,LOWER_EQUALS,0.01)\" tableName=\"",ov_table_name,"\"", sep="")
+commandsRun(ov_filter_cmd)
+```
+
+### 1.3 STRING network retrieval
+
+Before we can make a network visualization of the data, we obviously need to obtain a network from somewhere. While Omics Visualizer is designed to be able to work well with networks from any source, it integrates nicely with [stringApp](http://apps.cytoscape.org/apps/stringapp), which you can learn more about [here](https://jensenlab.org/training/stringapp/).
+
+Here, we want to retrieve a **Homo sapiens** network based on the accession numbers in the UniProt column with a STRING confidence score cutoff of **0.7** and previously filtered.
+
+```{r}
+ov_retrieve_cmd <- "ov retrieve queryColumn=\"UniProt\" species=\"Homo sapiens\" cutoff=0.7 filteredOnly=true"
+commandsRun(ov_retrieve_cmd)
+```
+
+### 1.4 Donut visualization
+
+We are now ready to start mapping the site-specific phosphoproteomics data onto the network. Specifically, we will visualize the two log-fold change values (**EOC vs FTE** and **EOC vs OSE**) for each site as concentric rings around the nodes in the network. We label the visualization with the modified position(s) in the protein (**AA position**).
+
+```{r}
+ov_donut_cmd <- "ov viz apply outer continuous attributes=\"EOC vs FTE,EOC vs OSE\" labels=\"AA position\" filteredOnly=true"
+commandsRun(ov_donut_cmd)
+```
+
+### 1.5 Pie visualization
+
+With the donut visualization we showed the quantitative changes in phosphorylation of each site. The study by Francavilla and coworkers also used this information to assign each site to one of three clusters (A, B and C) based on its behavior across samples. We will add this qualitative information to the network as a pie visualization.
+
+```{r}
+ov_pie_cmd <- "ov viz apply inner discrete attributes=\"Cluster\" filteredOnly=true"
+commandsRun(ov_pie_cmd)
+```
+
+### 1.6 Customizing colors
+
+Looking at the colors, it is clear that cluster assignments very well summarize the quantitative data on regulation; one cluster A are the down-regulated sites, cluster C are the up-regulated sites, and cluster B mostly contains sites that show different behavior in the two control tissues. However, the colors assigned to the clusters do not show this in an intuitive way.
+
+Customize the colors so that cluster A is blue, cluster B is yellow, and cluster C is red.
+
+```{r}
+colorMapping <- paste("A:", URLencode("#1F78B4", reserved = TRUE),
+                     ",B:", URLencode("#FF7F00", reserved = TRUE),
+                     ",C:", URLencode("#E31A1C", reserved = TRUE),
+                     sep="")
+ov_pie_custom_cmd <- paste("ov viz apply inner discrete attributes=\"Cluster\" filteredOnly=true colorMapping=\"",colorMapping,"\"", sep="")
+commandsRun(ov_pie_custom_cmd)
+```
+
+Since the two visualizations are now redundant, we can simplify the figure by deleting the detailed donut visualization.
+
+```{r}
+commandsRun("ov viz remove outer")
+
+# We put labels on the pie
+ov_pie_custom_label_cmd <- paste(ov_pie_custom_cmd, "labels=\"AA position\"")
+commandsRun(ov_pie_custom_label_cmd)
+```
+
