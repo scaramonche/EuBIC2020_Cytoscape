@@ -5,9 +5,9 @@ Repository for workflows created during the Cytoscape hackathon at the [EuBIC 20
 Contributors:
 - Marc LEGEAY (NNF Center for Protein Research, University of Copenhagen, Denmark)
 - Surya Gupta (VIB-UGent, University of Gent, Belgium)
-- Nadezhda Doncheva (NNF Center for Protein Research & Center for non-coding RNA in Technology and Health, University of Copenhagen, Denmark)
-- Lydie Lane (SIB and University of Geneva, Switzerland)
-- Renee Salz (CMBI RadboudUMC Nijmegen)
-- Joeri van Strien (CMBI RadboudUMC Nijmegen)
-- Anja Billing University of Southern Denmark, Odense, Denmark
+- Nadezhda Doncheva (NNF Center for Protein Research & RTH, University of Copenhagen, Denmark)
+- Lydie Lane (SIB, University of Geneva, Switzerland)
+- Renee Salz (CMBI RadboudUMC Nijmegen, Netherlands)
+- Joeri van Strien (CMBI RadboudUMC Nijmegen, Netherlands)
+- Anja Billing (University of Southern Denmark, Odense, Denmark)
 
