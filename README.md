@@ -7,7 +7,7 @@ Contributors:
 - Surya Gupta (VIB-UGent, University of Gent, Belgium)
 - Nadezhda Doncheva (NNF Center for Protein Research & Center for non-coding RNA in Technology and Health, University of Copenhagen, Denmark)
 - Lydie Lane (SIB and University of Geneva, Switzerland)
-- Renee Salz
+- Renee Salz (CMBI RadboudUMC Nijmegen)
 - Joeri van Strien (CMBI RadboudUMC Nijmegen)
-- Anja Billing
+- Anja Billing University of Southern Denmark, Odense, Denmark
 
