@@ -1,12 +1,19 @@
 library(httr)
 library(RCy3)
 
-# Step 1: retrieve the STRING network
+#######################################
+# Parameters for the workflow
 networkSize <- 20
 species <- 'Homo sapiens'
+queryType <- 'pubmed' # 'pubmed' or 'disease'
 query <- 'aging'
-queryType <- 'pubmed'
+#######################################
 
+if(is.null(tryCatch(cytoscapePing(), error = function(e){NULL}))) {
+  stop("No connection with Cytoscape")
+}
+
+# Step 1: retrieve the STRING network
 string_query = ''
 
 if(queryType == 'pubmed') {
@@ -17,11 +24,7 @@ if(queryType == 'pubmed') {
   stop()
 }
 
-netName <- commandsRun(string_query)
-# The commands answers with a string like:
-# Loaded network 'String Network - query' with ... nodes and ... edges
-# The name of the network is thus between the first and last single quote ' of the string
-netName <- sub("'[^']*", "", sub("[^']*'", "", netName))
+commandsRun(string_query)
 
 # We get the UniProt ids from the network
 # Should be in 'stringdb::canonical name' column
@@ -37,16 +40,18 @@ UP_response <- GET('http://www.uniprot.org/uploadlists',
                   to = 'ACC'
                 ))
 
-if(status_code(UP_response) == 200) {
-  lines <- strsplit(content(UP_response, 'text', encoding='UTF-8'), '\n')[[1]]
-  lines <- lines[-1] # get rid of the header
-  
-  matches <- strsplit(lines, '\t')
-  matches <- matrix(unlist(matches), ncol=2, byrow=TRUE)
-  colnames(matches) <- c('UniProt', 'NextProt')
-  
-  matches[,2] <- paste('NX_', matches[,2], sep="")
+if(status_code(UP_response) != 200) {
+  stop("No response from UniProt")
 }
+
+lines <- strsplit(content(UP_response, 'text', encoding='UTF-8'), '\n')[[1]]
+lines <- lines[-1] # get rid of the header
+
+matches <- strsplit(lines, '\t')
+matches <- matrix(unlist(matches), ncol=2, byrow=TRUE)
+colnames(matches) <- c('UniProt', 'NextProt')
+
+matches[,2] <- paste('NX_', matches[,2], sep="")
 
 # Step 3: We query NextProt to get the list of peptides associated with tissues
 SPARQL_query <- '
@@ -103,10 +108,15 @@ NP_ids <- paste(NP_ids, collapse = '\n')
 
 SPARQL_query <- sub('<list_of_entry:>', NP_ids, SPARQL_query)
 
-NP_response <- GET("https://sparql.nextprot.org/",
-                    query = list(
-                      query = SPARQL_query
-                    ))
+NP_response <- POST("https://sparql.nextprot.org/",
+                    body = list(
+                        query = SPARQL_query
+                    ),
+                    encode = "form")
+
+if(status_code(NP_response) != 200) {
+  stop("No response from NextProt")
+}
 
 # Here we manually define a mapping between NextProt tissues (NP) and TISSUE database (TDB)
 # In the following, we will use the TDB vocabulary
