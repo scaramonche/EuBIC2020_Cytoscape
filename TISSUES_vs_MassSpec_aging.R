@@ -1,12 +1,21 @@
 library(httr)
 library(RCy3)
 
-tissue_workflow <- function(networkSize, query, queryType = c("pubmed", "disease"), species = "Homo sapiens") {
+tissue_workflow <- function(networkSize, # Number of proteins in the network
+                            query, # pubmed query or disease name
+                            queryType = c("pubmed", "disease"), # which database
+                            species = "Homo sapiens", # the organism
+                            colorTheme = c("green", "orange", "blue"), # Which colors should be used in the network
+                            tissues = NULL, # array of the tissues to filter. If NULL (default), all tissues are used.
+                            labelTissues = FALSE, # should the slices be labelled by the tissues?
+                            export = FALSE # should the image of the network be exported?
+                            ) {
   if(is.null(tryCatch(cytoscapePing(), error = function(e){NULL}))) {
     stop("No connection with Cytoscape")
   }
   
   queryType <- match.arg(queryType)
+  colorTheme <- match.arg(colorTheme)
   
   # Step 1: retrieve the STRING network
   string_query = ''
@@ -207,20 +216,70 @@ order by ?entry'
   setCurrentNetwork(netName)
   commandsRun("ov connect mappingColNet=\"stringdb::canonical name\" mappingColTable=\"UniProt\"")
   
+  if(!is.null(tissues)) {
+    message("Filter the table ...")
+    commandsRun(paste("ov filter filter=\"[", paste(paste("(Tissue,EQUALS,", tissues, ")", sep=""), collapse = ","), "]\"", sep=""))
+    message("... Done.")
+  }
+  
+  # We define the colors here
+  discrete_color <- ""
+  continuous_color <- ""
+  if(colorTheme == "green") {
+    discrete_color <- "colorMapping=\"true:green,false:white\""
+    continuous_color <- "paletteName=\"Green shades\" paletteProviderName=\"ColorBrewer\""
+  } else if(colorTheme == "orange") {
+    discrete_color <- "colorMapping=\"true:orange,false:white\""
+    continuous_color <- "paletteName=\"Orange shades\" paletteProviderName=\"ColorBrewer\""
+  } else if(colorTheme == "blue") {
+    discrete_color <- "colorMapping=\"true:blue,false:white\""
+    continuous_color <- "paletteName=\"Blue shades\" paletteProviderName=\"ColorBrewer\""
+  }
+  
   # We visualize the data!
   message("Visualize NextProt data ...")
-  commandsRun("ov viz apply inner discrete attributes=\"NP\" colorMapping=\"true:green,false:white\"")
+  commandsRun(paste("ov viz apply inner discrete filteredOnly=true attributes=\"NP\"", discrete_color))
   message("... Done.")
   Sys.sleep(1)
   message("Visualize TISSUES data ...")
-  commandsRun("ov viz apply outer continuous attributes=\"TDB\" paletteName=\"Green shades\" paletteProviderName=\"ColorBrewer\" rangeMin=0 rangeMid=2.5 rangeMax=5")
+  cmd <- paste("ov viz apply outer continuous filteredOnly=true attributes=\"TDB\" rangeMin=0 rangeMid=2.5 rangeMax=5", continuous_color)
+  if(labelTissues) {
+    cmd <- paste(cmd, "labels=\"Tissue\"")
+  }
+  commandsRun(cmd)
   message("... Done.")
+  
+  message("Generate legend ...")
+  commandsRun("ov legend draw position=\"EAST_BOTTOM\"")
+  message("... Done.")
+  
+  if(export) {
+    message("Export the image ...")
+    # We sleep to let Cytoscape the time to draw everything
+    Sys.sleep(1)
+    # then we fit the network
+    fitContent()
+    # and export it
+    message(exportImage())
+    message("... Done.")
+  }
+  
+  message("Workflow ended.")
 }
 
 #######################################
-# Parameters for the workflow
-tissue_workflow(networkSize = 20,
-                query = "aging",
-                queryType = "pubmed",
-                species = "Homo sapiens")
+# # Examples of use:
+# tissue_workflow(networkSize = 20,
+#                 query = "aging",
+#                 queryType = "pubmed",
+#                 species = "Homo sapiens",
+#                 colorTheme = "green",
+#                 tissues = c("heart", "nervous system", "lung"),
+#                 labelTissues = TRUE,
+#                 export = TRUE)
+# 
+# # by default it is a pubmed, homo sapiens search, for all tissues
+# tissue_workflow(networkSize = 50,
+#                 query = "NETosis",
+#                 colorTheme = "orange")
 #######################################
