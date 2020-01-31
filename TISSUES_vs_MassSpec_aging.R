@@ -179,19 +179,22 @@ order by ?entry'
     uniprot <- string_table[r,"stringdb::canonical name"]
     if(!is.na(uniprot) && uniprot != "") {
       for(tissue_col in string_tissue_cols) {
-        ov_uniprot <- c(ov_uniprot, uniprot)
         tissue <- sub('tissue::', '', tissue_col)
-        ov_tissue <- c(ov_tissue, tissue)
-        tissue_val <- string_table[r, tissue_col]
-        ov_TDB <- c(ov_TDB, tissue_val)
-        
-        index_id <- which(NP_dataframe[,'UniProt'] == uniprot)
-        index_tissue <- which(NP_dataframe[,'tissue'] == tissue)
-        
-        if(length(intersect(index_id, index_tissue)) != 0) {
-          ov_NP <- c(ov_NP, TRUE)
-        } else {
-          ov_NP <- c(ov_NP, FALSE)
+        # We make sure the tissue is in the mapping
+        if(tissue %in% NP_TISSUE[,'TDB']) {
+          ov_uniprot <- c(ov_uniprot, uniprot)
+          ov_tissue <- c(ov_tissue, tissue)
+          tissue_val <- string_table[r, tissue_col]
+          ov_TDB <- c(ov_TDB, tissue_val)
+          
+          index_id <- which(NP_dataframe[,'UniProt'] == uniprot)
+          index_tissue <- which(NP_dataframe[,'tissue'] == tissue)
+          
+          if(length(intersect(index_id, index_tissue)) != 0) {
+            ov_NP <- c(ov_NP, TRUE)
+          } else {
+            ov_NP <- c(ov_NP, FALSE)
+          }
         }
       }
     }
