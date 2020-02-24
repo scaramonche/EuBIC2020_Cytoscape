@@ -3,9 +3,8 @@ title: "Working with manual files to study disease networks with Omics Visualize
 output: amyloidoses_networks
 ---
 #Set working directory in R markdown
-Remember to set your working directory to where your data are located by changing this line of code.
 ```{r setup}
-knitr::opts_knit$set(root.dir = '~/Desktop/R_scripts')
+knitr::opts_knit$set(root.dir = getwd())
 ```
 
 #Initialize
@@ -195,6 +194,8 @@ Then for each disease create subnetworks
 ```{r}
 network_names <- c()
 string_network_names <- c()
+#set flag for visual style
+flag = 0
 for (i in diseases_node_suids){
   #if you want to change preferred layout, do it through the gui
   layoutNetwork()
@@ -209,7 +210,7 @@ for (i in diseases_node_suids){
   if (length(first_neighbors$nodes) !=1){
     #Create network from selection, i.e. disease + proteins associated with the disease
     createSubnetwork(subnetwork.name = disease_name)
-    Sys.sleep(1)
+    Sys.sleep(0.5)
     #Delete the disease node from the network, to keep only protein nodes for the STRING protein query later
     selectNodes(i, preserve.current.selection=FALSE)
     deleteSelectedNodes()
@@ -217,43 +218,43 @@ for (i in diseases_node_suids){
     nodes <- getAllNodes()
     #create a comma separated string variable to store the protein names for the query
     query_string <- paste(nodes, collapse=",") 
-    Sys.sleep(1)
+    Sys.sleep(0.5)
     #run string protein query using the function to retrieve the top 10 interactors
     #alternatively uncomment the 2 lines of code below this command and run using that -- But don't do both!!!
     stringProteinQuery(includesViruses="false", limit=10, newNetName = disease_name, query=query_string)
+    Sys.sleep(1)
     #string.cmd <- paste('string protein query cutoff=0.4 includesViruses=false limit=10 taxonID=9606 newNetName=\"',disease_name,'\" query=\"',query_string, '\"',sep='')
     #commandsRun(string.cmd)
     
     
     ##### VISUAL STYLE CREATION #####
-    #set flag for visual style
-    flag = 0
     if(flag==0){
-      # Create a style to apply to all networks
-      #Sometimes the app creates one style for each network and not a generally applicable style (e.g. STRING style v1.5), so you have to make sure one visual style exists that can be applied to all networks
-      copyVisualStyle(from.style=paste("STRING style v1.5 - ", disease_name, sep=''), to.style="AmyCo style")
-      flag=flag+1
-      Sys.sleep(0.5)
-      #Remove string glass balls and fill colors
-      deleteStyleMapping(style.name="AmyCo style", visual.prop="NODE_CUSTOMGRAPHICS_1")
-      Sys.sleep(0.5)
-      deleteStyleMapping(style.name="AmyCo style", visual.prop="NODE_FILL_COLOR")
-      Sys.sleep(0.5)
-      #set default node color to gray
-      setNodeColorDefault('#C0C0C0', style.name ="AmyCo style")
-      Sys.sleep(0.5)
-      lockNodeDimensions(TRUE, style.name = "AmyCo style")
-      Sys.sleep(0.5)
-      #Set node size to 30
-      data <- read.delim(attribute_file, stringsAsFactors = FALSE)
-      loadTableData(data,data.key.column="name",table.key.column="display name")
-      setNodeSizeDefault(new.size=30, style.name = "AmyCo style")
-      Sys.sleep(0.5)
-      #set node size for the other nodes to 30, mapping style= discrete
-      #setNodeSizeMapping("query term","",30,mapping.type="d",style.name = "AmyCo style")
-      #Sys.sleep(1)
+        # Create a style to apply to all networks
+        #Sometimes the app creates one style for each network and not a generally applicable style (e.g. STRING style v1.5), so you have to make sure one visual style exists that can be applied to all networks
+        copyVisualStyle(from.style=paste("STRING style v1.5 - ", disease_name, sep=''), to.style="AmyCo style")
+        flag=flag+1
+        Sys.sleep(0.5)
+        #Remove string glass balls and fill colors
+        deleteStyleMapping(style.name="AmyCo style", visual.prop="NODE_CUSTOMGRAPHICS_1")
+        Sys.sleep(0.5)
+        deleteStyleMapping(style.name="AmyCo style", visual.prop="NODE_FILL_COLOR")
+        Sys.sleep(0.5)
+        #set default node color to gray
+        setNodeColorDefault('#C0C0C0', style.name ="AmyCo style")
+        Sys.sleep(0.5)
+        lockNodeDimensions(TRUE, style.name = "AmyCo style")
+        Sys.sleep(0.5)
+        #Set node size to 30
+        setNodeSizeDefault(new.size=30, style.name = "AmyCo style")
+        Sys.sleep(0.5)
     }
-    Sys.sleep(0.5)
+    ##### END OF VISUAL STYLE CREATION #####
+    
+    
+    #load attribute file for each STRING network
+    data <- read.delim(attribute_file, stringsAsFactors = FALSE)
+    loadTableData(data,data.key.column="name",table.key.column="display name")
+    #Apply the visual style you created above
     setVisualStyle("AmyCo style")
     Sys.sleep(1)
     #make nodes of query bigger
@@ -295,7 +296,7 @@ for (i in diseases_node_suids){
     Sys.sleep(1)
   }
   ##Select main network
-  setCurrentNetwork("All_interactions_no_app_prnp")
+  setCurrentNetwork(network=suid_no_app_prnp)
 }
 ```
 ##Save session
