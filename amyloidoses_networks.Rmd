@@ -61,7 +61,7 @@ Please follow the Omics Visualizer and String App exercises before moving on.
 network_file <- paste(getwd(), "amyco_disease_protein_interactions.tsv", sep = '/')
 Sys.sleep(0.5)
 if(!file.exists(network_file)) {
-  download.file("https://jensenlab.org/assets/amyco/amyco_disease_protein_interactions.tsv", network_file)
+  download.file("https://jensenlab.org/assets/amyco_disease_protein_interactions.tsv", network_file)
   
 }
 #columnTypeList: List of column types ordered by column index (e.g. "source,target,interaction,source attribute,target attribute,edge attribute,skip" or just "s,t,i,sa,ta,ea,x"):
@@ -106,7 +106,7 @@ Here we load an attribute file, that will add a label on every node in our netwo
 ```{r}
 attribute_file <- paste(getwd(), "protein_or_disease_amyco.txt", sep = '/')
 if(!file.exists(attribute_file)) {
-  download.file("https://jensenlab.org/assets/amyco/protein_or_disease_amyco.txt", attribute_file)
+  download.file("https://jensenlab.org/assets/protein_or_disease_amyco.txt", attribute_file)
   
 }
 
