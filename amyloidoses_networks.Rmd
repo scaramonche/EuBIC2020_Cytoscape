@@ -1,13 +1,13 @@
 ---
 title: "Working with manual files to study disease networks with Omics Visualizer and the String App"
-output: amyloidoses_networks
+output: rmarkdown::github_document
 ---
-#Set working directory in R markdown
+### Set working directory in R markdown
 ```{r setup}
 knitr::opts_knit$set(root.dir = getwd())
 ```
 
-#Initialize
+#  Initialize
 Make sure the required packages are installed. If any package is missing you can always install it with the install.packages("packageName") command and load it with library(packageName).
 ```{r}
 if(!"RCy3" %in% installed.packages()){
@@ -23,18 +23,18 @@ library(RColorBrewer)
 help(package=RCy3)
 ```
 
-##Check connection and close previous session if necessary
+### Check connection and close previous session if necessary
 Make sure you have the latest version of Cytoscape installed and you have already started Cytoscape. If you want to close previous session uncomment the second line in the next block.
 ```{r}
 cytoscapePing()
-#closeSession(TRUE)
+# closeSession(TRUE)
 ```
 
-##Make sure you have the required Apps installed inside Cytoscape
+### Make sure you have the required Apps installed inside Cytoscape
 For this to work you will need an Internet connection, as will be the case for the rest of this exercise
 ```{r}
 installedCysApps <- getAvailableApps()
-#remove prefix and suffix
+# remove prefix and suffix
 installedCysApps <- sub("(name: )(.*)(, version:.*)", "\\2", installedCysApps, perl=TRUE)
 
 if(!"stringApp" %in% installedCysApps) {
@@ -48,8 +48,8 @@ if(!"Omics Visualizer" %in% installedCysApps) {
 }
 ```
 
-#Load and Preprocess data
-##Load network from table
+## Load and Preprocess data
+### Load network from table
 In this exercise, we will load a data table with disease-protein association data, create a protein-disease network, retrieve STRING networks for the proteins associated with each disease seperately, and visualize disease-specific information onto the protein network using Omics Visualizer.
 
 The data have been retrieved from AmyCo ([Nastou, et. al, 2019] (https://www.ncbi.nlm.nih.gov/pubmed/31094220)) a database of amyloidoses and diseases related to the amyloid deposition.
@@ -63,44 +63,44 @@ if(!file.exists(network_file)) {
   download.file("https://jensenlab.org/assets/amyco_disease_protein_interactions.tsv", network_file)
   
 }
-#columnTypeList: List of column types ordered by column index (e.g. "source,target,interaction,source attribute,target attribute,edge attribute,skip" or just "s,t,i,sa,ta,ea,x"):
+# columnTypeList: List of column types ordered by column index (e.g. "source,target,interaction,source attribute,target attribute,edge attribute,skip" or just "s,t,i,sa,ta,ea,x"):
 network_load=paste0('network import file file="',network_file,'" columnTypeList="sa,s,t,ta,ea,ea,ea" firstRowAsColumnNames=true startLoadRow=1  delimiters="\\t"')
-#remember to change the \\ to \ in cytoscape command line
+# remember to change the \\ to \ in cytoscape command line
 Sys.sleep(1)
 
 
 commandsRun(network_load)
-#Did you change the working directory???
+# Did you change the working directory???
 Sys.sleep(1)
 suid_main <- getNetworkSuid()
 ```
 
-##Clone network and Remove APP and PRNP
+### Clone network and Remove APP and PRNP
 At this stage we want to remove two proteins that might introduce noise in our analysis. APP is associated with Alzheimer's disease and PRNP is associated with Creutzfeld-Jakob disease. So, we expect that the majority of high-scoring functional associations retrieved from STRING for these proteins will be associated with these highly prevalent diseases, and not the ones under study.
 ```{r}
 setCurrentNetwork(suid_main)
-#clone network
+# clone network
 cloneNetwork(network=suid_main)
 Sys.sleep(1)
-#get suid
+# get suid
 suid_no_app_prnp <- getNetworkSuid()
-#select this network
+# select this network
 setCurrentNetwork(suid_no_app_prnp)
 Sys.sleep(1)
 renameNetwork("All_interactions_no_app_prnp", network=suid_no_app_prnp)
 
-#remove app and prp
+# remove app and prp
 selectNodes("APP,PRNP", by.col="name")
 deleteSelectedNodes()
 ```
 
-##Delete unnecessary network
+### Delete unnecessary network
 ```{r}
 net_to_delete <- sub("(/.*/)(.*)", "\\2", network_file, perl=TRUE)
 deleteNetwork(network=net_to_delete)
 ```
 
-##Import attribute table with protein/disease labels
+### Import attribute table with protein/disease labels
 Here we load an attribute file, that will add a label on every node in our network. We will use those labels to select nodes associated with specific diseases later.
 ```{r}
 attribute_file <- paste(getwd(), "protein_or_disease_amyco.txt", sep = '/')
@@ -110,25 +110,25 @@ if(!file.exists(attribute_file)) {
 }
 
 data <- read.delim(attribute_file, stringsAsFactors = FALSE)
-#the key column from the attribute file. that will be used to map the data to the preloaded network
+# the key column from the attribute file. that will be used to map the data to the preloaded network
 loadTableData(data,data.key.column="name")
 ```
-##Load Omics Visualizer table
+### Load Omics Visualizer table
 The same table that we used previously to load the network will also be used to visualize data with Omics Visualizer
 ```{r}
 ov.cmd3 <- paste0('ov load file="',network_file,'" newTableName="All_data" firstRowAsColumnNames=true startLoadRow=1')
 commandsRun(ov.cmd3)
 ```
 
-#Create STRING networks
-##Create subnetworks per disease
+# Create STRING networks
+### Create subnetworks per disease
 At this stage we will create one protein subnetwork for each disease and then query STRING to retrieve interactions between the proteins associated with each disease, as well as, the top 10 interactors each time. Then we will create special visualizations for each network using Omics Visualizer.
 
-##Function for STRING queries
+### Function for STRING queries
 Before we move forward we will write a function to perform String Protein Queries.
 This function can be used to perform any protein query when working with stringApp v1.5 and is just implemented for convienience. You can always write string queries the same way we did for omics visualizer above.
 ```{r}
-# ------------------------------------------------------------------------------
+#  ------------------------------------------------------------------------------
 #' @title String Protein Query
 #'
 #' @description Retrieves a string Network for a set of Proteins
@@ -189,122 +189,118 @@ diseases <- selectNodes("disease", by.col="type")
 diseases_node_suids <- diseases$nodes
 ```
 
-#Create disease subnetworks
+## Create disease subnetworks
 Then for each disease create subnetworks
 ```{r}
 network_names <- c()
 string_network_names <- c()
-#set flag for visual style
+# set flag for visual style
 flag = 0
 for (i in diseases_node_suids){
-  #if you want to change preferred layout, do it through the gui
+  # if you want to change preferred layout, do it through the gui
   layoutNetwork()
-  #select disease nodes one by one
+  # select disease nodes one by one
   selectNodes(i, preserve.current.selection=FALSE)
-  #get disease name attribute to name the new network for each disease
+  # get disease name attribute to name the new network for each disease
   disease_name <- getTableValue('node',i, 'DISEASE_NAME')
   
-  #Select first neighbors of disease node: these will be the proteins associated with each disease
+  # Select first neighbors of disease node: these will be the proteins associated with each disease
   first_neighbors <- selectFirstNeighbors()
-  #check if the disease is connected to any proteins (is not a singleton) after removing any proteins during preprocessing 
+  # check if the disease is connected to any proteins (is not a singleton) after removing any proteins during preprocessing 
   if (length(first_neighbors$nodes) !=1){
-    #Create network from selection, i.e. disease + proteins associated with the disease
+    # Create network from selection, i.e. disease + proteins associated with the disease
     createSubnetwork(subnetwork.name = disease_name)
     Sys.sleep(0.5)
-    #Delete the disease node from the network, to keep only protein nodes for the STRING protein query later
+    # Delete the disease node from the network, to keep only protein nodes for the STRING protein query later
     selectNodes(i, preserve.current.selection=FALSE)
     deleteSelectedNodes()
-    #get node names to make the query string for stringapp
+    # get node names to make the query string for stringapp
     nodes <- getAllNodes()
-    #create a comma separated string variable to store the protein names for the query
+    # create a comma separated string variable to store the protein names for the query
     query_string <- paste(nodes, collapse=",") 
     Sys.sleep(0.5)
-    #run string protein query using the function to retrieve the top 10 interactors
-    #alternatively uncomment the 2 lines of code below this command and run using that -- But don't do both!!!
+    # run string protein query using the function to retrieve the top 10 interactors
+    # alternatively uncomment the 2 lines of code below this command and run using that -- But don't do both!!!
     stringProteinQuery(includesViruses="false", limit=10, newNetName = disease_name, query=query_string)
     Sys.sleep(1)
-    #string.cmd <- paste('string protein query cutoff=0.4 includesViruses=false limit=10 taxonID=9606 newNetName=\"',disease_name,'\" query=\"',query_string, '\"',sep='')
-    #commandsRun(string.cmd)
+    # string.cmd <- paste('string protein query cutoff=0.4 includesViruses=false limit=10 taxonID=9606 newNetName=\"',disease_name,'\" query=\"',query_string, '\"',sep='')
+    # commandsRun(string.cmd)
     
     
-    ##### VISUAL STYLE CREATION #####
+    ## ## #  VISUAL STYLE CREATION ## ## # 
     if(flag==0){
-        # Create a style to apply to all networks
-        #Sometimes the app creates one style for each network and not a generally applicable style (e.g. STRING style v1.5), so you have to make sure one visual style exists that can be applied to all networks
+        #  Create a style to apply to all networks
+        # Sometimes the app creates one style for each network and not a generally applicable style (e.g. STRING style v1.5), so you have to make sure one visual style exists that can be applied to all networks
         copyVisualStyle(from.style=paste("STRING style v1.5 - ", disease_name, sep=''), to.style="AmyCo style")
         flag=flag+1
         Sys.sleep(0.5)
-        #Remove string glass balls and fill colors
+        # Remove string glass balls and fill colors
         deleteStyleMapping(style.name="AmyCo style", visual.prop="NODE_CUSTOMGRAPHICS_1")
         Sys.sleep(0.5)
         deleteStyleMapping(style.name="AmyCo style", visual.prop="NODE_FILL_COLOR")
         Sys.sleep(0.5)
-        #set default node color to gray
+        # set default node color to gray
         setNodeColorDefault('#C0C0C0', style.name ="AmyCo style")
         Sys.sleep(0.5)
         lockNodeDimensions(TRUE, style.name = "AmyCo style")
         Sys.sleep(0.5)
-        #Set node size to 30
+        # Set node size to 30
         setNodeSizeDefault(new.size=30, style.name = "AmyCo style")
         Sys.sleep(0.5)
     }
-    ##### END OF VISUAL STYLE CREATION #####
+    #####  END OF VISUAL STYLE CREATION ##### 
     
     
-    #load attribute file for each STRING network
+    # load attribute file for each STRING network
     data <- read.delim(attribute_file, stringsAsFactors = FALSE)
     loadTableData(data,data.key.column="name",table.key.column="display name")
-    #Apply the visual style you created above
+    # Apply the visual style you created above
     setVisualStyle("AmyCo style")
     Sys.sleep(1)
-    #make nodes of query bigger
+    # make nodes of query bigger
     for (i in nodes){
       setNodeSizeBypass(i, 50)
     }
-    #connect OV table to network
+    # connect OV table to network
     ov.cmd2 <-'ov connect mappingColNet="display name" mappingColTable="GENENAME"'
     commandsRun(ov.cmd2)
     Sys.sleep(1)
-    #create custom color mapping and apply inner graphics
-    #you can always use one of the palletes provided by the app.
-    #e.g. ov.cmd4 <- 'ov viz apply inner discrete paletteName="viridis" paletteProviderName="Viridis"'
-    #diseases are colored based on some common attributes in order to reduce the colors to 12
+    # create custom color mapping and apply inner graphics
+    # you can always use one of the palletes provided by the app.
+    # e.g. ov.cmd4 <- 'ov viz apply inner discrete paletteName="viridis" paletteProviderName="Viridis"'
+    # diseases are colored based on some common attributes in order to reduce the colors to 12
     ov.cmd4 <- 'ov viz apply inner discrete attributes="DISEASE_NAME" colorMapping="Immunoglobulin Light-chain Amyloidosis:#80b1d3,Localized insulin-derived Amyloidosis:#bebada,Apolipoprotein A-I associated Amyloidosis:#fb8072,Hereditary fibrinogen A alpha-chain Amyloidosis:#e31a1c,Hereditary lysozyme Amyloidosis:#ffffb3,Apolipoprotein A-II associated Amyloidosis:#fb8072,AH Amyloidosis:#80b1d3,AHL Amyloidosis:#80b1d3,Apolipoprotein C-II associated Amyloidosis:#fdb462,Apolipoprotein C-III associated Amyloidosis:#fdb462,Leukocyte chemotactic factor 2 Amyloidosis:#33a02c,Apolipoprotein A-IV associated Amyloidosis:#fb8072,AA Amyloidosis:#1F78B4,Wild-type transthyretin-related Amyloidosis:#b3de69,Wild type beta-2-microglobulin-related Amyloidosis:#fccde5,Calcifying Epithelial Odontogenic Tumor:#ffffb3,Variably Protease-Sensitive Prionopathy:#d9d9d9,Isolated Atrial Amyloidosis:#b3de69,Medin Amyloidosis:#b3de69,Enfuvirtide-induced Amyloidosis:#bebada,PrP Systemic Amyloidosis:#d9d9d9,Senile Seminal Vesicle Amyloidosis:#ffffb3,Hereditary beta-2-microglobulin-related Amyloidosis:#fccde5,Finnish type amyloidosis:#ccebc5,Transthyretin amyloidosis:#8dd3c7,Primary cutaneous amyloidosis:#bebada,Hereditary Cerebral Amyloid Angiopathy Icelandic Type:#bc80bd,APP-related cerebral amyloid angiopathy:#bc80bd,ITM2B-related cerebral amyloid angiopathy 1:#bc80bd,ITM2B-related cerebral amyloid angiopathy 2:#bc80bd"'
     commandsPOST(ov.cmd4)
     Sys.sleep(1)
-    #the relationships between the proteins and the diseases are mapped on the outer part of the node. Label 3 (black color) indicates an amyloidogenic protein for the specified disease, Label 2 (gray color) indicates a co-deposited protein for the speficied disease, which also is an amyloidogenic protein in another disease and Label 1 (white color) indicates a co-deposited protein with no pre-recorded amyloidogenic properties in any other disease
+    # the relationships between the proteins and the diseases are mapped on the outer part of the node. Label 3 (black color) indicates an amyloidogenic protein for the specified disease, Label 2 (gray color) indicates a co-deposited protein for the speficied disease, which also is an amyloidogenic protein in another disease and Label 1 (white color) indicates a co-deposited protein with no pre-recorded amyloidogenic properties in any other disease
     ov.cmd5 <- 'ov viz apply outer continuous colorMin="#d3d3d3" colorMax="#000000" colorMid="#a9a9a9" attributes="LABEL" rangeMax=3 rangeMid=2 rangeMin=1'
     commandsPOST(ov.cmd5)
     Sys.sleep(1)
-    ######################################################################
-    ########       This node segment is for edge filtering      ##########
-    ########  Apply only if necessary, otherwise comment out    ########## 
-    ######################################################################
-    #apply edge filter to use experimental evidence only
+    ########        This node segment is for edge filtering      ########## 
+    ########   Apply only if necessary, otherwise comment out    ##########  
+    # apply edge filter to use experimental evidence only
     createColumnFilter(filter.name="experiments_only", column="stringdb::experiments", criterion=c(0,1), predicate="BETWEEN", type = "edges")
-    #invert edge selection to select edges with no experimental evidence
+    # invert edge selection to select edges with no experimental evidence
     invertEdgeSelection()
-    #delete selected edges
+    # delete selected edges
     deleteSelectedEdges()
     Sys.sleep(1)
-    ######################################################################
-    ###########              End of code segment               ###########
-    ######################################################################
+    ########      End of code segment         ########   
     string_network_names <- c(string_network_names, getNetworkName())
-    #get network names in a list
+    # get network names in a list
     network_names <- c(network_names,disease_name)
     Sys.sleep(1)
   }
-  ##Select main network
+  ## Select main network
   setCurrentNetwork(network=suid_no_app_prnp)
 }
 ```
-##Save session
+### Save session
 ```{r}
 saveSession(paste(getwd(),"one_network_per_disease.cys", sep = '/'))
 ```
 
-##Apply Layout
+### Apply Layout
 These steps can be taken as a first effort to layout the network, but generally if the layout is applied manually the visualization is better.
 Cose seems to work best amongst the automated layouts tested.
 ```{r}
@@ -312,9 +308,9 @@ network.list <- getNetworkList()
 for (i in network.list){
   if (grepl("String Network",i)){
     setCurrentNetwork(i)
-    #apply organic layout - set as default through the GUI
+    # apply organic layout - set as default through the GUI
     layoutNetwork()
-    #apply CoSE layout
+    # apply CoSE layout
     layoutNetwork("cose")
   }
 }
