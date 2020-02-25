@@ -5,7 +5,11 @@ output: html_notebook
 
 # Cytoscape Omics Visualizer exercises
 
-```{r}
+```{r packages_check}
+if(!"RCy3" %in% installed.packages()){
+    install.packages("BiocManager")
+    BiocManager::install("RCy3")
+}
 library(RCy3)
 ```
 
@@ -24,7 +28,7 @@ In these exercises, we will use the [Omics Visualizer](http://apps.cytoscape.org
 
 To follow the exercises, please make sure that you have the latest version of Cytoscape installed. Then start Cytoscape and go to **Apps → App Manager** to check for new apps, install them and update the current ones if necessarily. The exercises require you to have certain Cytoscape apps installed. Make sure you have the **Omics Visualizer** app, the **stringApp**, **enhancedGraphics**, and their dependencies installed.
 
-```{r}
+```{r apps_check}
 availableApps <- getAvailableApps()
 # Looking for names:
 availableApps <- sub("name: ", "", availableApps) # get rid of the prefix
@@ -52,13 +56,17 @@ We will work with phosphoproteomics data from an ovarian cancer study ([Francavi
 
 Close the current session. Download the text file with the data described above and import it with Omics Visualizer.
 
-```{r}
+```{r init_session}
 closeSession(save.before.closing = FALSE)
 
+# We make sure the file exists, or we download it
 filename <- paste(getwd(), "Francavilla2017CellRep.tsv", sep = '/')
 if(!file.exists(filename)) {
   download.file("https://jensenlab.org/assets/Francavilla2017CellRep.tsv", filename)
 }
+```
+
+```{r import_table}
 ov_load_cmd = paste("ov load file=\"", filename, "\"", sep = '')
 ov_table_name <- commandsRun(ov_load_cmd)
 ```
@@ -68,7 +76,7 @@ ov_table_name <- commandsRun(ov_load_cmd)
 
 Omics Visualizer allows you to filter the rows in the table before visualizing them on a network. We will create a simple filter to keep only the phosphorylation sites that are statistically significant at a 1% false discovery rate.
 
-```{r}
+```{r filter_table}
 ov_filter_cmd <- paste("ov filter filter=\"(Adj p-value,LOWER_EQUALS,0.01)\" tableName=\"",ov_table_name,"\"", sep="")
 commandsRun(ov_filter_cmd)
 ```
@@ -79,7 +87,7 @@ Before we can make a network visualization of the data, we obviously need to obt
 
 Here, we want to retrieve a **Homo sapiens** network based on the accession numbers in the UniProt column with a STRING confidence score cutoff of **0.7** and previously filtered.
 
-```{r}
+```{r retrieve_STRING}
 ov_retrieve_cmd <- "ov retrieve queryColumn=\"UniProt\" species=\"Homo sapiens\" cutoff=0.7 filteredOnly=true"
 commandsRun(ov_retrieve_cmd)
 ```
@@ -88,7 +96,7 @@ commandsRun(ov_retrieve_cmd)
 
 We are now ready to start mapping the site-specific phosphoproteomics data onto the network. Specifically, we will visualize the two log-fold change values (**EOC vs FTE** and **EOC vs OSE**) for each site as concentric rings around the nodes in the network. We label the visualization with the modified position(s) in the protein (**AA position**).
 
-```{r}
+```{r donut_viz}
 ov_donut_cmd <- "ov viz apply outer continuous attributes=\"EOC vs FTE,EOC vs OSE\" labels=\"AA position\" filteredOnly=true"
 commandsRun(ov_donut_cmd)
 ```
@@ -97,7 +105,7 @@ commandsRun(ov_donut_cmd)
 
 With the donut visualization we showed the quantitative changes in phosphorylation of each site. The study by Francavilla and coworkers also used this information to assign each site to one of three clusters (A, B and C) based on its behavior across samples. We will add this qualitative information to the network as a pie visualization.
 
-```{r}
+```{r pie_viz}
 ov_pie_cmd <- "ov viz apply inner discrete attributes=\"Cluster\" filteredOnly=true"
 commandsRun(ov_pie_cmd)
 ```
@@ -108,7 +116,7 @@ Looking at the colors, it is clear that cluster assignments very well summarize 
 
 Customize the colors so that cluster A is blue, cluster B is yellow, and cluster C is red.
 
-```{r}
+```{r custom_donut_colors}
 colorMapping <- paste("A:", URLencode("#1F78B4", reserved = TRUE),
                      ",B:", URLencode("#FF7F00", reserved = TRUE),
                      ",C:", URLencode("#E31A1C", reserved = TRUE),
@@ -119,9 +127,13 @@ commandsRun(ov_pie_custom_cmd)
 
 Since the two visualizations are now redundant, we can simplify the figure by deleting the detailed donut visualization.
 
-```{r}
+```{r remove_donut}
 commandsRun("ov viz remove outer")
+```
 
+We add labels to each slices to identify the different sites.
+
+```{r labels}
 # We put labels on the pie
 ov_pie_custom_label_cmd <- paste(ov_pie_custom_cmd, "labels=\"AA position\"")
 commandsRun(ov_pie_custom_label_cmd)
