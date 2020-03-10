@@ -10,4 +10,4 @@ Contributors:
 - Renee Salz (CMBI RadboudUMC Nijmegen, Netherlands)
 - Joeri van Strien (CMBI RadboudUMC Nijmegen, Netherlands)
 - Anja Billing (University of Southern Denmark, Odense, Denmark)
-
+- Katerina Nastou (NNF Center for Protein Research, University of Copenhagen, Denmark)
